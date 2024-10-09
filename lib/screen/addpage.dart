@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:todo_api_bloc/api/repository.dart';
+import 'package:todo_api_bloc/model/add_todo.dart';
 import 'package:todo_api_bloc/screen/todo_list.dart';
 
 class AddToDoPage extends StatefulWidget {
@@ -8,6 +10,7 @@ class AddToDoPage extends StatefulWidget {
 
   @override
   State<AddToDoPage> createState() => _AddToDoPageState();
+ 
 }
 
 class _AddToDoPageState extends State<AddToDoPage> {
@@ -15,7 +18,7 @@ class _AddToDoPageState extends State<AddToDoPage> {
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
   bool isEdit = false;
-
+ final _formKey = GlobalKey<FormState>();
   @override
   void initState() {
     final todo = widget.todo;
@@ -45,40 +48,73 @@ class _AddToDoPageState extends State<AddToDoPage> {
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          TextField(style: TextStyle(color: Colors.black),
-            controller: titleController,
-            decoration: InputDecoration(
-              hintText: 'Title',
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.indigo, width: 2),
+      body: Form( key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            TextFormField(autovalidateMode: AutovalidateMode.onUserInteraction,
+              validator: (value) {
+              if(value == null || value.isEmpty){
+                return 'Please enter the Title';
+              }else{
+                return null;
+              }
+            },
+              style: TextStyle(color: Colors.black),
+              controller: titleController,
+              decoration: InputDecoration(
+                hintText: 'Title',
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.indigo, width: 2),
+                ),
+              ),
+              maxLength: 50,
+            ),
+            TextFormField(autovalidateMode: AutovalidateMode.onUserInteraction,
+             validator: (value) {
+               if(value == null|| value.isEmpty){
+                return 'Please enter the Description';
+               }else{
+                return null;
+               }
+             },
+                style: TextStyle(color: Colors.black),
+                controller: descriptionController,
+                decoration: InputDecoration(
+                  hintText: 'Description',
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.indigo, width: 2),
+                  ),
+                  
+                ),
+                
+                maxLength: 500,
+                minLines: 5,
+                maxLines: 10,
+              
+            ),
+            SizedBox(height: 18),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo,
+              ),
+              onPressed: () async{
+                if(_formKey.currentState!.validate()){
+                  return Get.to(TodoListPage());
+                }
+                if(isEdit){
+                  await updateTodo();
+                }else{
+                  await submitTodo();
+                }
+              
+              },
+              child: Text(isEdit? 'update':'Submit',
+              style: TextStyle(color: Colors.white),
               ),
             ),
-            maxLength: 50,
-          ),
-          TextField(style: TextStyle(color: Colors.black),
-            controller: descriptionController,
-            decoration: InputDecoration(
-              hintText: 'Description',
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.indigo, width: 2),
-              ),
-            ),
-            maxLength: 500,
-            minLines: 5,
-            maxLines: 10,
-          ),
-          SizedBox(height: 18),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo,
-            ),
-            onPressed: () => isEdit ? updateTodo() : submitTodo(),
-            child: Text(isEdit ? 'Update' : 'Submit', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
