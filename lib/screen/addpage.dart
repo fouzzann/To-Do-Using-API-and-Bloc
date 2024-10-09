@@ -1,7 +1,5 @@
-import 'dart:convert';
-import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:todo_api_bloc/api/repository.dart';
 import 'package:todo_api_bloc/screen/todo_list.dart';
 
 class AddToDoPage extends StatefulWidget {
@@ -13,134 +11,139 @@ class AddToDoPage extends StatefulWidget {
 }
 
 class _AddToDoPageState extends State<AddToDoPage> {
-  TextEditingController tittlecontroller = TextEditingController();
-  TextEditingController discreptioncontroller = TextEditingController();
+  final TodoRepository todoRepository = TodoRepository();
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
   bool isEdit = false;
+
   @override
   void initState() {
     final todo = widget.todo;
     if (todo != null) {
       isEdit = true;
       final title = todo['title'];
-      final descirption = todo['description'];
-      tittlecontroller.text = title;
-      discreptioncontroller.text = descirption;
+      final description = todo['description'];
+      titleController.text = title;
+      descriptionController.text = description;
     }
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.white,
-      appBar: AppBar(backgroundColor: Colors.white,
-      leading: IconButton(onPressed: (){Get.back();
-      }, icon: Icon(Icons.arrow_back,color: Colors.black,)),
-        title: Text(isEdit ? 'edit todo ' : 'add todo',style: TextStyle(color: Colors.indigo,fontWeight: FontWeight.bold),),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+        ),
+        title: Text(
+          isEdit ? 'Edit Todo' : 'Add Todo',
+          style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
-      ), 
-
-
+      ),
       body: ListView(
+        padding: const EdgeInsets.all(16.0),
         children: [
-          TextField(style: TextStyle(color: Colors.white),
-            maxLength: 50,
-            controller: tittlecontroller,
-            decoration: InputDecoration(hintText: 'Title',
-            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.indigo,
-            width: 2))
+          TextField(style: TextStyle(color: Colors.black),
+            controller: titleController,
+            decoration: InputDecoration(
+              hintText: 'Title',
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.indigo, width: 2),
+              ),
             ),
+            maxLength: 50,
           ),
           TextField(style: TextStyle(color: Colors.black),
-            maxLength: 500,
-            controller: discreptioncontroller,
-            decoration: InputDecoration(hintText: 'Discreption',
-            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.indigo,
-            width: 2))
+            controller: descriptionController,
+            decoration: InputDecoration(
+              hintText: 'Description',
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.indigo, width: 2),
+              ),
             ),
-            keyboardType: TextInputType.multiline,
+            maxLength: 500,
             minLines: 5,
             maxLines: 10,
-            
           ),
-          SizedBox(
-            height: 18,
+          SizedBox(height: 18),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+            ),
+            onPressed: () => isEdit ? updateTodo() : submitTodo(),
+            child: Text(isEdit ? 'Update' : 'Submit', style: TextStyle(color: Colors.white)),
           ),
-        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-  onPressed: () {
- 
-    if (isEdit) {
-      updatedData();
-    } else {
-      submitData();
-    }
- Get.to(TodoListPage());
-  },
-  child: Text(isEdit ? 'Update' : 'Submit',style: TextStyle(color: Colors.white),),
-)
         ],
       ),
     );
   }
 
-  Future<void> updatedData() async {
-    final todo = widget.todo;
-    if (widget.todo == null) {
+  Future<void> submitTodo() async {
+    final title = titleController.text;
+    final description = descriptionController.text;
+
+    if (title.isEmpty || description.isEmpty) {
+      showErrorMessage("Title and Description cannot be empty");
       return;
     }
-    final id = todo!['_id'];
-   
-    final title = tittlecontroller.text;
-    final description = discreptioncontroller.text;
 
-    final body = {
-      "title": title,
-      "description": description,
-      "is_completed": false
-    };
-    final url = 'https://api.nstack.in/v1/todos/$id';
-    final uri = Uri.parse(url);
-    final responce = await http.put(uri,
-        body: jsonEncode(body), headers: {'Content-Type': 'application/json'});
-    if (responce.statusCode == 200) {
-      tittlecontroller.text = '';
-      discreptioncontroller.text = '';
-      showSuceesMessage('updated succes');
+    try {
+      final statusCode = await todoRepository.createTodo(title, description);
+      if (statusCode == 201) {
+        showSuccessMessage('Todo Created Successfully');
+        Navigator.pop(context, true); // Pop and refresh the todo list page
+      } else {
+        showErrorMessage('Failed to Create Todo');
+      }
+    } catch (e) {
+      showErrorMessage('Error occurred: $e');
     }
   }
 
-  void submitData() async {
-    //get the data from form
-    final title = tittlecontroller.text;
-    final description = discreptioncontroller.text;
-    final body = {
-      "title": title,
-      "description": description,
-      "is_completed": false,
-    };
-    //submit data to the server
+  Future<void> updateTodo() async {
+    final todo = widget.todo;
+    if (todo == null) return;
 
-    final url = 'https://api.nstack.in/v1/todos';
-    final uri = Uri.parse(url);
-    final response = await http.post(uri,
-        body: jsonEncode(body), headers: {'Content-Type': 'application/json'});
+    final id = todo['_id'];
+    final title = titleController.text;
+    final description = descriptionController.text;
 
-    if (response.statusCode == 201) {
-      tittlecontroller.text = '';
-      discreptioncontroller.text = '';
-      showSuceesMessage('creation succes');
-      print(response.body);
-    } else {
-      showSuceesMessage('creation field');
+    if (title.isEmpty || description.isEmpty) {
+      showErrorMessage("Title and Description cannot be empty");
+      return;
     }
-    // show success of fail message based on status
+
+    try {
+      final statusCode = await todoRepository.updateTodo(id, title, description);
+      if (statusCode == 200) {
+        showSuccessMessage('Todo Updated Successfully');
+        Navigator.pop(context, true); // Pop and refresh the todo list page
+      } else {
+        showErrorMessage('Failed to Update Todo');
+      }
+    } catch (e) {
+      showErrorMessage('Error occurred: $e');
+    }
   }
 
-  void showSuceesMessage(String messege) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        messege,
-        style: TextStyle(color: Colors.green),
+  void showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: Colors.green)),
       ),
-    ));
+    );
+  }
+
+  void showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: Colors.red)),
+      ),
+    );
   }
 }
