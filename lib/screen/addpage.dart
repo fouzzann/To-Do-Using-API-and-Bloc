@@ -37,10 +37,12 @@ class _AddToDoPageState extends State<AddToDoPage> {
       }, icon: Icon(Icons.arrow_back,color: Colors.black,)),
         title: Text(isEdit ? 'edit todo ' : 'add todo',style: TextStyle(color: Colors.indigo,fontWeight: FontWeight.bold),),
         centerTitle: true,
-      ),
+      ), 
+
+
       body: ListView(
         children: [
-          TextField(style: TextStyle(color: Colors.black),
+          TextField(style: TextStyle(color: Colors.white),
             maxLength: 50,
             controller: tittlecontroller,
             decoration: InputDecoration(hintText: 'Title',
